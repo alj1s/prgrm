@@ -1,21 +1,14 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { getWebRequest } from '@tanstack/react-start/server'
 import { desc } from 'drizzle-orm'
 import { Dumbbell } from 'lucide-react'
 import { useState } from 'react'
 import { db } from '#/db/index'
 import { workoutSessions, workoutSets } from '#/db/schema'
-import { auth } from '#/lib/auth'
 import { authClient } from '#/lib/auth-client'
 import { cn } from '#/lib/utils'
 
-const getPageData = createServerFn({ method: 'GET' }).handler(async () => {
-  const request = getWebRequest()
-  const session = await auth.api.getSession({ headers: request.headers })
-
-  if (!session) return { authed: false as const, workouts: null }
-
+const getWorkouts = createServerFn({ method: 'GET' }).handler(async () => {
   const sessions = await db
     .select()
     .from(workoutSessions)
@@ -23,18 +16,15 @@ const getPageData = createServerFn({ method: 'GET' }).handler(async () => {
 
   const sets = await db.select().from(workoutSets)
 
-  return {
-    authed: true as const,
-    workouts: sessions.map((s) => ({
-      ...s,
-      sets: sets.filter((ws) => ws.sessionId === s.id),
-    })),
-  }
+  return sessions.map((s) => ({
+    ...s,
+    sets: sets.filter((ws) => ws.sessionId === s.id),
+  }))
 })
 
 export const Route = createFileRoute('/')({
   component: App,
-  loader: () => getPageData(),
+  loader: () => getWorkouts(),
 })
 
 // Epley formula
@@ -54,9 +44,11 @@ const strengthColors: Record<StrengthLevel, string> = {
 }
 
 function App() {
-  const { authed, workouts } = Route.useLoaderData()
+  const workouts = Route.useLoaderData()
+  const { data: session, isPending } = authClient.useSession()
 
-  if (!authed) return <SignInForm />
+  if (isPending) return null
+  if (!session?.user) return <SignInForm />
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6 py-10">
@@ -67,7 +59,7 @@ function App() {
         </div>
 
         <div className="flex flex-col gap-6">
-          {workouts!.map((session) => (
+          {workouts.map((session) => (
             <div
               key={session.id}
               className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden"
