@@ -1,30 +1,52 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { desc } from 'drizzle-orm'
-import { Dumbbell } from 'lucide-react'
+import { Dumbbell, Plus, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { db } from '#/db/index'
-import { workoutSessions, workoutSets } from '#/db/schema'
+import { exercises, workoutSessions, workoutSets } from '#/db/schema'
 import { authClient } from '#/lib/auth-client'
 import { cn } from '#/lib/utils'
 
-const getWorkouts = createServerFn({ method: 'GET' }).handler(async () => {
+const getPageData = createServerFn({ method: 'GET' }).handler(async () => {
   const sessions = await db
     .select()
     .from(workoutSessions)
     .orderBy(desc(workoutSessions.id))
 
   const sets = await db.select().from(workoutSets)
+  const exerciseList = await db.select().from(exercises).orderBy(exercises.name)
 
-  return sessions.map((s) => ({
-    ...s,
-    sets: sets.filter((ws) => ws.sessionId === s.id),
-  }))
+  return {
+    workouts: sessions.map((s) => ({
+      ...s,
+      sets: sets.filter((ws) => ws.sessionId === s.id),
+    })),
+    exercises: exerciseList,
+  }
 })
+
+const logWorkout = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (data: {
+      date: string
+      sets: { exercise: string; weightLbs: number; reps: number; strengthLevel: string }[]
+    }) => data,
+  )
+  .handler(async ({ data }) => {
+    const [session] = await db
+      .insert(workoutSessions)
+      .values({ date: data.date })
+      .returning({ id: workoutSessions.id })
+
+    await db.insert(workoutSets).values(
+      data.sets.map((s) => ({ sessionId: session.id, ...s })),
+    )
+  })
 
 export const Route = createFileRoute('/')({
   component: App,
-  loader: () => getWorkouts(),
+  loader: () => getPageData(),
 })
 
 // Epley formula
@@ -34,6 +56,7 @@ function oneRepMax(weight: number, reps: number) {
 }
 
 type StrengthLevel = 'Beginner' | 'Novice' | 'Intermediate' | 'Advanced' | 'Elite'
+const STRENGTH_LEVELS: StrengthLevel[] = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Elite']
 
 const strengthColors: Record<StrengthLevel, string> = {
   Beginner: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
@@ -43,20 +66,229 @@ const strengthColors: Record<StrengthLevel, string> = {
   Elite: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
 }
 
+const inputCls =
+  'h-9 rounded-lg border border-slate-600 bg-slate-700/50 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors'
+
+function todayLabel() {
+  return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+type SetRow = { exercise: string; weightLbs: number; reps: number; strengthLevel: StrengthLevel }
+
+function LogWorkoutForm({
+  exerciseList,
+  onSaved,
+}: {
+  exerciseList: { id: number; name: string; category: string }[]
+  onSaved: () => void
+}) {
+  const [date, setDate] = useState(todayLabel())
+  const [rows, setRows] = useState<SetRow[]>([
+    { exercise: exerciseList[0]?.name ?? '', weightLbs: 0, reps: 5, strengthLevel: 'Intermediate' },
+  ])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const addRow = () =>
+    setRows((r) => [
+      ...r,
+      { exercise: r[r.length - 1]?.exercise ?? exerciseList[0]?.name ?? '', weightLbs: 0, reps: 5, strengthLevel: 'Intermediate' },
+    ])
+
+  const removeRow = (i: number) => setRows((r) => r.filter((_, idx) => idx !== i))
+
+  const updateRow = <K extends keyof SetRow>(i: number, key: K, value: SetRow[K]) =>
+    setRows((r) => r.map((row, idx) => (idx === i ? { ...row, [key]: value } : row)))
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      await logWorkout({ data: { date, sets: rows } })
+      onSaved()
+    } catch {
+      setError('Failed to save workout. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const byCategory = exerciseList.reduce<Record<string, typeof exerciseList>>((acc, ex) => {
+    ;(acc[ex.category] ??= []).push(ex)
+    return acc
+  }, {})
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden mb-6"
+    >
+      <div className="px-5 py-3 border-b border-slate-700 bg-slate-800/80 flex items-center gap-3">
+        <label className="text-sm font-medium text-slate-300 shrink-0">Date</label>
+        <input
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          required
+          className={cn(inputCls, 'w-44')}
+          placeholder="Feb 17, 2026"
+        />
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-slate-500 border-b border-slate-700/50">
+              <th className="px-5 py-3 font-medium">Exercise</th>
+              <th className="px-5 py-3 font-medium">Weight (lbs)</th>
+              <th className="px-5 py-3 font-medium">Reps</th>
+              <th className="px-5 py-3 font-medium">Level</th>
+              <th className="px-2 py-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className="border-b border-slate-700/30 last:border-0">
+                <td className="px-5 py-2.5">
+                  <select
+                    value={row.exercise}
+                    onChange={(e) => updateRow(i, 'exercise', e.target.value)}
+                    className={cn(inputCls, 'w-56 pr-2')}
+                    required
+                  >
+                    {Object.entries(byCategory).map(([cat, exs]) => (
+                      <optgroup key={cat} label={cat}>
+                        {exs.map((ex) => (
+                          <option key={ex.id} value={ex.name}>
+                            {ex.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-5 py-2.5">
+                  <input
+                    type="number"
+                    min={0}
+                    step={2.5}
+                    value={row.weightLbs}
+                    onChange={(e) => updateRow(i, 'weightLbs', Number(e.target.value))}
+                    className={cn(inputCls, 'w-24')}
+                  />
+                </td>
+                <td className="px-5 py-2.5">
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={row.reps}
+                    onChange={(e) => updateRow(i, 'reps', Number(e.target.value))}
+                    className={cn(inputCls, 'w-20')}
+                    required
+                  />
+                </td>
+                <td className="px-5 py-2.5">
+                  <select
+                    value={row.strengthLevel}
+                    onChange={(e) => updateRow(i, 'strengthLevel', e.target.value as StrengthLevel)}
+                    className={cn(inputCls, 'w-36')}
+                  >
+                    {STRENGTH_LEVELS.map((l) => (
+                      <option key={l} value={l}>
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-2 py-2.5">
+                  {rows.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeRow(i)}
+                      className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="px-5 py-3 border-t border-slate-700/50 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={addRow}
+          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-cyan-400 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add set
+        </button>
+
+        <div className="flex items-center gap-3">
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="h-9 px-5 rounded-lg bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
+          >
+            {loading ? 'Saving…' : 'Save workout'}
+          </button>
+        </div>
+      </div>
+    </form>
+  )
+}
+
 function App() {
-  const workouts = Route.useLoaderData()
+  const { workouts, exercises: exerciseList } = Route.useLoaderData()
   const { data: session, isPending } = authClient.useSession()
+  const router = useRouter()
+  const [showForm, setShowForm] = useState(false)
 
   if (isPending) return null
   if (!session?.user) return <SignInForm />
 
+  const handleSaved = () => {
+    setShowForm(false)
+    router.invalidate()
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6 py-10">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <Dumbbell className="w-7 h-7 text-cyan-400" />
-          <h1 className="text-2xl font-bold text-white">Recent Workouts</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <Dumbbell className="w-7 h-7 text-cyan-400" />
+            <h1 className="text-2xl font-bold text-white">Recent Workouts</h1>
+          </div>
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className={cn(
+              'flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-semibold transition-colors',
+              showForm
+                ? 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                : 'bg-cyan-500 hover:bg-cyan-600 text-white',
+            )}
+          >
+            {showForm ? (
+              <>
+                <X className="w-4 h-4" /> Cancel
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" /> Log workout
+              </>
+            )}
+          </button>
         </div>
+
+        {showForm && (
+          <LogWorkoutForm exerciseList={exerciseList} onSaved={handleSaved} />
+        )}
 
         <div className="flex flex-col gap-6">
           {workouts.map((session) => (
@@ -178,7 +410,7 @@ function SignInForm() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  className="h-9 w-full rounded-lg border border-slate-600 bg-slate-700/50 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                  className={cn(inputCls, 'w-full')}
                 />
               </div>
             )}
@@ -190,7 +422,7 @@ function SignInForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-9 w-full rounded-lg border border-slate-600 bg-slate-700/50 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                className={cn(inputCls, 'w-full')}
               />
             </div>
 
@@ -202,7 +434,7 @@ function SignInForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="h-9 w-full rounded-lg border border-slate-600 bg-slate-700/50 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+                className={cn(inputCls, 'w-full')}
               />
             </div>
 
