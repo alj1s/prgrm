@@ -24,6 +24,13 @@ export const workoutSets = pgTable('workout_sets', {
   createdAt: timestamp('created_at').defaultNow(),
 })
 
+export const exercises = pgTable('exercises', {
+  id: serial().primaryKey(),
+  name: text().notNull().unique(),
+  category: text().notNull(), // Barbell, Dumbbell, Bodyweight, Machine, Cable
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
 // better-auth tables
 export const user = pgTable('user', {
   id: text().primaryKey(),
