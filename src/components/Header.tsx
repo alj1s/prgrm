@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 
 import { useState } from 'react'
 import { Database, Home, Menu, Network, X } from 'lucide-react'
+import BetterAuthHeader from '../integrations/better-auth/header-user'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
@@ -87,6 +88,10 @@ export default function Header() {
 
           {/* Demo Links End */}
         </nav>
+
+        <div className="p-4 border-t border-gray-700">
+          <BetterAuthHeader />
+        </div>
       </aside>
     </>
   )
