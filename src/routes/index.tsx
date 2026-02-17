@@ -1,118 +1,130 @@
 import { createFileRoute } from '@tanstack/react-router'
-import {
-  Zap,
-  Server,
-  Route as RouteIcon,
-  Shield,
-  Waves,
-  Sparkles,
-} from 'lucide-react'
+import { Dumbbell } from 'lucide-react'
+import { cn } from '#/lib/utils'
 
 export const Route = createFileRoute('/')({ component: App })
 
+// Epley formula
+function oneRepMax(weight: number, reps: number) {
+  if (reps === 1) return weight
+  return Math.round(weight * (1 + reps / 30))
+}
+
+type StrengthLevel = 'Beginner' | 'Novice' | 'Intermediate' | 'Advanced' | 'Elite'
+
+const strengthColors: Record<StrengthLevel, string> = {
+  Beginner: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  Novice: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  Intermediate: 'bg-green-500/20 text-green-300 border-green-500/30',
+  Advanced: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  Elite: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+}
+
+interface WorkoutSet {
+  exercise: string
+  weightLbs: number
+  reps: number
+  strengthLevel: StrengthLevel
+}
+
+interface WorkoutSession {
+  date: string
+  sets: WorkoutSet[]
+}
+
+const workouts: WorkoutSession[] = [
+  {
+    date: 'Feb 17, 2026',
+    sets: [
+      { exercise: 'Bench Press', weightLbs: 185, reps: 5, strengthLevel: 'Intermediate' },
+      { exercise: 'Incline Dumbbell Press', weightLbs: 70, reps: 8, strengthLevel: 'Novice' },
+      { exercise: 'Tricep Pushdown', weightLbs: 55, reps: 12, strengthLevel: 'Novice' },
+    ],
+  },
+  {
+    date: 'Feb 15, 2026',
+    sets: [
+      { exercise: 'Squat', weightLbs: 245, reps: 3, strengthLevel: 'Intermediate' },
+      { exercise: 'Romanian Deadlift', weightLbs: 185, reps: 6, strengthLevel: 'Novice' },
+      { exercise: 'Leg Press', weightLbs: 360, reps: 10, strengthLevel: 'Intermediate' },
+    ],
+  },
+  {
+    date: 'Feb 13, 2026',
+    sets: [
+      { exercise: 'Deadlift', weightLbs: 315, reps: 1, strengthLevel: 'Advanced' },
+      { exercise: 'Barbell Row', weightLbs: 155, reps: 6, strengthLevel: 'Intermediate' },
+      { exercise: 'Pull-ups', weightLbs: 0, reps: 10, strengthLevel: 'Novice' },
+    ],
+  },
+]
+
 function App() {
-  const features = [
-    {
-      icon: <Zap className="w-12 h-12 text-cyan-400" />,
-      title: 'Powerful Server Functions',
-      description:
-        'Write server-side code that seamlessly integrates with your client components. Type-safe, secure, and simple.',
-    },
-    {
-      icon: <Server className="w-12 h-12 text-cyan-400" />,
-      title: 'Flexible Server Side Rendering',
-      description:
-        'Full-document SSR, streaming, and progressive enhancement out of the box. Control exactly what renders where.',
-    },
-    {
-      icon: <RouteIcon className="w-12 h-12 text-cyan-400" />,
-      title: 'API Routes',
-      description:
-        'Build type-safe API endpoints alongside your application. No separate backend needed.',
-    },
-    {
-      icon: <Shield className="w-12 h-12 text-cyan-400" />,
-      title: 'Strongly Typed Everything',
-      description:
-        'End-to-end type safety from server to client. Catch errors before they reach production.',
-    },
-    {
-      icon: <Waves className="w-12 h-12 text-cyan-400" />,
-      title: 'Full Streaming Support',
-      description:
-        'Stream data from server to client progressively. Perfect for AI applications and real-time updates.',
-    },
-    {
-      icon: <Sparkles className="w-12 h-12 text-cyan-400" />,
-      title: 'Next Generation Ready',
-      description:
-        'Built from the ground up for modern web applications. Deploy anywhere JavaScript runs.',
-    },
-  ]
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      <section className="relative py-20 px-6 text-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10"></div>
-        <div className="relative max-w-5xl mx-auto">
-          <div className="flex items-center justify-center gap-6 mb-6">
-            <img
-              src="/tanstack-circle-logo.png"
-              alt="TanStack Logo"
-              className="w-24 h-24 md:w-32 md:h-32"
-            />
-            <h1 className="text-6xl md:text-7xl font-black text-white [letter-spacing:-0.08em]">
-              <span className="text-gray-300">TANSTACK</span>{' '}
-              <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                START
-              </span>
-            </h1>
-          </div>
-          <p className="text-2xl md:text-3xl text-gray-300 mb-4 font-light">
-            The framework for next generation AI applications
-          </p>
-          <p className="text-lg text-gray-400 max-w-3xl mx-auto mb-8">
-            Full-stack framework powered by TanStack Router for React and Solid.
-            Build modern applications with server functions, streaming, and type
-            safety.
-          </p>
-          <div className="flex flex-col items-center gap-4">
-            <a
-              href="https://tanstack.com/start"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-8 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors shadow-lg shadow-cyan-500/50"
-            >
-              Documentation
-            </a>
-            <p className="text-gray-400 text-sm mt-2">
-              Begin your TanStack Start journey by editing{' '}
-              <code className="px-2 py-1 bg-slate-700 rounded text-cyan-400">
-                /src/routes/index.tsx
-              </code>
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6 py-10">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center gap-3 mb-8">
+          <Dumbbell className="w-7 h-7 text-cyan-400" />
+          <h1 className="text-2xl font-bold text-white">Recent Workouts</h1>
         </div>
-      </section>
 
-      <section className="py-16 px-6 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => (
+        <div className="flex flex-col gap-6">
+          {workouts.map((session) => (
             <div
-              key={index}
-              className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10"
+              key={session.date}
+              className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden"
             >
-              <div className="mb-4">{feature.icon}</div>
-              <h3 className="text-xl font-semibold text-white mb-3">
-                {feature.title}
-              </h3>
-              <p className="text-gray-400 leading-relaxed">
-                {feature.description}
-              </p>
+              <div className="px-5 py-3 border-b border-slate-700 bg-slate-800/80">
+                <span className="text-sm font-medium text-slate-300">{session.date}</span>
+              </div>
+
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-slate-500 border-b border-slate-700/50">
+                    <th className="px-5 py-3 font-medium">Exercise</th>
+                    <th className="px-5 py-3 font-medium text-right">Weight</th>
+                    <th className="px-5 py-3 font-medium text-right">Reps</th>
+                    <th className="px-5 py-3 font-medium text-right">Est. 1RM</th>
+                    <th className="px-5 py-3 font-medium text-right">Level</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {session.sets.map((set, i) => {
+                    const orm = oneRepMax(set.weightLbs, set.reps)
+                    return (
+                      <tr
+                        key={i}
+                        className="border-b border-slate-700/30 last:border-0 hover:bg-slate-700/20 transition-colors"
+                      >
+                        <td className="px-5 py-3.5 text-white font-medium">{set.exercise}</td>
+                        <td className="px-5 py-3.5 text-slate-300 text-right tabular-nums">
+                          {set.weightLbs > 0 ? `${set.weightLbs} lbs` : 'BW'}
+                        </td>
+                        <td className="px-5 py-3.5 text-slate-300 text-right tabular-nums">
+                          {set.reps}
+                        </td>
+                        <td className="px-5 py-3.5 text-cyan-400 text-right tabular-nums font-medium">
+                          {set.weightLbs > 0 ? `${orm} lbs` : '—'}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <span
+                            className={cn(
+                              'inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border',
+                              strengthColors[set.strengthLevel],
+                            )}
+                          >
+                            {set.strengthLevel}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           ))}
         </div>
-      </section>
+      </div>
     </div>
   )
 }
