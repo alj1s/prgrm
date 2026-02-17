@@ -1,9 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { getWebRequest } from '@tanstack/react-start/server'
 import { desc } from 'drizzle-orm'
 import { Dumbbell } from 'lucide-react'
 import { db } from '#/db/index'
 import { workoutSessions, workoutSets } from '#/db/schema'
+import { auth } from '#/lib/auth'
 import { cn } from '#/lib/utils'
 
 const getWorkouts = createServerFn({ method: 'GET' }).handler(async () => {
@@ -20,8 +22,15 @@ const getWorkouts = createServerFn({ method: 'GET' }).handler(async () => {
   }))
 })
 
+const requireAuth = createServerFn({ method: 'GET' }).handler(async () => {
+  const request = getWebRequest()
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) throw redirect({ to: '/sign-in' })
+})
+
 export const Route = createFileRoute('/')({
   component: App,
+  beforeLoad: () => requireAuth(),
   loader: () => getWorkouts(),
 })
 
