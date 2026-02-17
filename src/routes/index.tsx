@@ -1,8 +1,29 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
+import { desc } from 'drizzle-orm'
 import { Dumbbell } from 'lucide-react'
+import { db } from '#/db/index'
+import { workoutSessions, workoutSets } from '#/db/schema'
 import { cn } from '#/lib/utils'
 
-export const Route = createFileRoute('/')({ component: App })
+const getWorkouts = createServerFn({ method: 'GET' }).handler(async () => {
+  const sessions = await db
+    .select()
+    .from(workoutSessions)
+    .orderBy(desc(workoutSessions.id))
+
+  const sets = await db.select().from(workoutSets)
+
+  return sessions.map((session) => ({
+    ...session,
+    sets: sets.filter((s) => s.sessionId === session.id),
+  }))
+})
+
+export const Route = createFileRoute('/')({
+  component: App,
+  loader: () => getWorkouts(),
+})
 
 // Epley formula
 function oneRepMax(weight: number, reps: number) {
@@ -20,46 +41,9 @@ const strengthColors: Record<StrengthLevel, string> = {
   Elite: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
 }
 
-interface WorkoutSet {
-  exercise: string
-  weightLbs: number
-  reps: number
-  strengthLevel: StrengthLevel
-}
-
-interface WorkoutSession {
-  date: string
-  sets: WorkoutSet[]
-}
-
-const workouts: WorkoutSession[] = [
-  {
-    date: 'Feb 17, 2026',
-    sets: [
-      { exercise: 'Bench Press', weightLbs: 185, reps: 5, strengthLevel: 'Intermediate' },
-      { exercise: 'Incline Dumbbell Press', weightLbs: 70, reps: 8, strengthLevel: 'Novice' },
-      { exercise: 'Tricep Pushdown', weightLbs: 55, reps: 12, strengthLevel: 'Novice' },
-    ],
-  },
-  {
-    date: 'Feb 15, 2026',
-    sets: [
-      { exercise: 'Squat', weightLbs: 245, reps: 3, strengthLevel: 'Intermediate' },
-      { exercise: 'Romanian Deadlift', weightLbs: 185, reps: 6, strengthLevel: 'Novice' },
-      { exercise: 'Leg Press', weightLbs: 360, reps: 10, strengthLevel: 'Intermediate' },
-    ],
-  },
-  {
-    date: 'Feb 13, 2026',
-    sets: [
-      { exercise: 'Deadlift', weightLbs: 315, reps: 1, strengthLevel: 'Advanced' },
-      { exercise: 'Barbell Row', weightLbs: 155, reps: 6, strengthLevel: 'Intermediate' },
-      { exercise: 'Pull-ups', weightLbs: 0, reps: 10, strengthLevel: 'Novice' },
-    ],
-  },
-]
-
 function App() {
+  const workouts = Route.useLoaderData()
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6 py-10">
       <div className="max-w-4xl mx-auto">
@@ -71,7 +55,7 @@ function App() {
         <div className="flex flex-col gap-6">
           {workouts.map((session) => (
             <div
-              key={session.date}
+              key={session.id}
               className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden"
             >
               <div className="px-5 py-3 border-b border-slate-700 bg-slate-800/80">
@@ -89,11 +73,12 @@ function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {session.sets.map((set, i) => {
+                  {session.sets.map((set) => {
                     const orm = oneRepMax(set.weightLbs, set.reps)
+                    const level = set.strengthLevel as StrengthLevel
                     return (
                       <tr
-                        key={i}
+                        key={set.id}
                         className="border-b border-slate-700/30 last:border-0 hover:bg-slate-700/20 transition-colors"
                       >
                         <td className="px-5 py-3.5 text-white font-medium">{set.exercise}</td>
@@ -110,7 +95,7 @@ function App() {
                           <span
                             className={cn(
                               'inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border',
-                              strengthColors[set.strengthLevel],
+                              strengthColors[level],
                             )}
                           >
                             {set.strengthLevel}
