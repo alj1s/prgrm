@@ -9,11 +9,8 @@ import { exercises, workoutSessions, workoutSets } from '#/db/schema'
 import { auth } from '#/lib/auth'
 import { authClient } from '#/lib/auth-client'
 import { cn } from '#/lib/utils'
-import {
-  LogWorkoutForm
-  
-} from '#/components/LogWorkoutForm'
-import type {LogWorkoutData} from '#/components/LogWorkoutForm';
+import { LogWorkoutForm } from '#/components/LogWorkoutForm'
+import type { LogWorkoutData } from '#/components/LogWorkoutForm'
 import { WorkoutCard } from '#/components/WorkoutCard'
 import { SignInForm } from '#/components/SignInForm'
 

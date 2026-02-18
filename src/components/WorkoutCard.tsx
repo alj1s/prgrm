@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { oneRepMax } from '#/lib/workout'
-import type {StrengthLevel} from '#/lib/strength-standards';
+import type { StrengthLevel } from '#/lib/strength-standards'
 import { StrengthBadge } from './StrengthBadge'
 
 export type WorkoutSession = {

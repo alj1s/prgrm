@@ -1,8 +1,5 @@
-import {
-  strengthLevelColor
-  
-} from '#/lib/strength-standards'
-import type {StrengthLevel} from '#/lib/strength-standards';
+import { strengthLevelColor } from '#/lib/strength-standards'
+import type { StrengthLevel } from '#/lib/strength-standards'
 
 export type ChartDataPoint = {
   date: string

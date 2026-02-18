@@ -5,14 +5,11 @@ import { db } from '#/db/index'
 import { workoutSessions, workoutSets } from '#/db/schema'
 import { auth } from '#/lib/auth'
 import { authClient } from '#/lib/auth-client'
-import {
-  BODYWEIGHT_EXERCISES
-  
-} from '#/lib/strength-standards'
-import type {StrengthLevel} from '#/lib/strength-standards';
+import { BODYWEIGHT_EXERCISES } from '#/lib/strength-standards'
+import type { StrengthLevel } from '#/lib/strength-standards'
 import { oneRepMax } from '#/lib/workout'
-import { ProgressChart  } from '#/components/ProgressChart'
-import type {ChartDataPoint} from '#/components/ProgressChart';
+import { ProgressChart } from '#/components/ProgressChart'
+import type { ChartDataPoint } from '#/components/ProgressChart'
 import { StrengthBadge } from '#/components/StrengthBadge'
 
 async function requireUser() {

@@ -2,7 +2,7 @@ import { ChevronDown, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { cn, inputCls } from '#/lib/utils'
 import { getStrengthLevel } from '#/lib/strength-standards'
-import type { StrengthLevel } from '#/lib/strength-standards';
+import type { StrengthLevel } from '#/lib/strength-standards'
 import { oneRepMax } from '#/lib/workout'
 import { StrengthBadge } from './StrengthBadge'
 
@@ -111,7 +111,7 @@ export function LogWorkoutForm({
 
   const byCategory = exerciseList.reduce<Record<string, typeof exerciseList>>(
     (acc, ex) => {
-      ; (acc[ex.category] ??= []).push(ex)
+      ;(acc[ex.category] ??= []).push(ex)
       return acc
     },
     {},
