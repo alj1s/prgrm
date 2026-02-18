@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { oneRepMax } from '#/lib/workout'
-import { type StrengthLevel } from '#/lib/strength-standards'
+import type {StrengthLevel} from '#/lib/strength-standards';
 import { StrengthBadge } from './StrengthBadge'
 
 export type WorkoutSession = {
@@ -70,11 +70,15 @@ export function WorkoutCard({
                 key={set.id}
                 className="border-b border-slate-700/30 last:border-0 hover:bg-slate-700/20 transition-colors"
               >
-                <td className="px-5 py-3.5 text-white font-medium">{set.exercise}</td>
+                <td className="px-5 py-3.5 text-white font-medium">
+                  {set.exercise}
+                </td>
                 <td className="px-5 py-3.5 text-slate-300 text-right tabular-nums">
                   {set.weightKg > 0 ? `${set.weightKg} kg` : 'BW'}
                 </td>
-                <td className="px-5 py-3.5 text-slate-300 text-right tabular-nums">{set.reps}</td>
+                <td className="px-5 py-3.5 text-slate-300 text-right tabular-nums">
+                  {set.reps}
+                </td>
                 <td className="px-5 py-3.5 text-cyan-400 text-right tabular-nums font-medium">
                   {set.weightKg > 0 ? `${orm} kg` : '—'}
                 </td>

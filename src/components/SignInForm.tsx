@@ -56,7 +56,9 @@ export function SignInForm() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {isSignUp && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-slate-300">Name</label>
+                <label className="text-sm font-medium text-slate-300">
+                  Name
+                </label>
                 <input
                   type="text"
                   value={name}
@@ -68,7 +70,9 @@ export function SignInForm() {
             )}
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-slate-300">Email</label>
+              <label className="text-sm font-medium text-slate-300">
+                Email
+              </label>
               <input
                 type="email"
                 value={email}
@@ -79,7 +83,9 @@ export function SignInForm() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-slate-300">Password</label>
+              <label className="text-sm font-medium text-slate-300">
+                Password
+              </label>
               <input
                 type="password"
                 value={password}
@@ -101,7 +107,11 @@ export function SignInForm() {
               disabled={loading}
               className="h-9 w-full rounded-lg bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
             >
-              {loading ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'}
+              {loading
+                ? 'Please wait…'
+                : isSignUp
+                  ? 'Create account'
+                  : 'Sign in'}
             </button>
           </form>
 

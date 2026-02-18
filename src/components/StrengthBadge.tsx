@@ -1,5 +1,9 @@
 import { cn } from '#/lib/utils'
-import { strengthLevelBadge, type StrengthLevel } from '#/lib/strength-standards'
+import {
+  strengthLevelBadge
+  
+} from '#/lib/strength-standards'
+import type {StrengthLevel} from '#/lib/strength-standards';
 
 export function StrengthBadge({ level }: { level: StrengthLevel }) {
   return (

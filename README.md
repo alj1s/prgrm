@@ -4,14 +4,14 @@ A workout tracking app built with TanStack Start, TanStack Query, Shadcn/ui, Dri
 
 ## Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | [TanStack Start](https://tanstack.com/start) |
-| Routing | [TanStack Router](https://tanstack.com/router) (file-based) |
-| Data fetching | [TanStack Query](https://tanstack.com/query) |
-| Database | PostgreSQL via [Drizzle ORM](https://orm.drizzle.team/) |
-| Auth | [Better Auth](https://better-auth.com) (email + password) |
-| UI | [Shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/) |
+| Layer         | Technology                                                                     |
+| ------------- | ------------------------------------------------------------------------------ |
+| Framework     | [TanStack Start](https://tanstack.com/start)                                   |
+| Routing       | [TanStack Router](https://tanstack.com/router) (file-based)                    |
+| Data fetching | [TanStack Query](https://tanstack.com/query)                                   |
+| Database      | PostgreSQL via [Drizzle ORM](https://orm.drizzle.team/)                        |
+| Auth          | [Better Auth](https://better-auth.com) (email + password)                      |
+| UI            | [Shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/) |
 
 ## Getting Started
 
