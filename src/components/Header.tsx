@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 
 import { useState } from 'react'
-import { Home, Menu, X } from 'lucide-react'
+import { BarChart2, Home, Menu, X } from 'lucide-react'
 import BetterAuthHeader from '../integrations/better-auth/header-user'
 
 export default function Header() {
@@ -17,8 +17,9 @@ export default function Header() {
         >
           <Menu size={24} />
         </button>
-        <Link to="/" className="ml-4 text-2xl font-bold tracking-tight text-white">
-          progrm
+        <Link to="/" className="ml-4 flex items-center gap-2.5">
+          <img src="/logo.svg" alt="" aria-hidden="true" className="h-6 w-auto" />
+          <span className="text-2xl font-bold tracking-tight text-white">progrm</span>
         </Link>
       </header>
 
@@ -52,6 +53,18 @@ export default function Header() {
             <span className="font-medium">Home</span>
           </Link>
 
+          <Link
+            to="/stats"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors mb-2"
+            activeProps={{
+              className:
+                'flex items-center gap-3 p-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 transition-colors mb-2',
+            }}
+          >
+            <BarChart2 size={20} />
+            <span className="font-medium">Stats</span>
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-gray-700">

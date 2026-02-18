@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { desc, eq } from 'drizzle-orm'
-import { Dumbbell, Plus, Trash2, X } from 'lucide-react'
+import { ChevronDown, Dumbbell, Plus, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { db } from '#/db/index'
 import { exercises, workoutSessions, workoutSets } from '#/db/schema'
@@ -188,22 +188,25 @@ function LogWorkoutForm({
               return (
                 <tr key={i} className="border-b border-slate-700/30 last:border-0">
                   <td className="px-5 py-2.5">
-                    <select
-                      value={row.exercise}
-                      onChange={(e) => updateRow(i, 'exercise', e.target.value)}
-                      className={cn(inputCls, 'w-56 pr-2')}
-                      required
-                    >
-                      {Object.entries(byCategory).map(([cat, exs]) => (
-                        <optgroup key={cat} label={cat}>
-                          {exs.map((ex) => (
-                            <option key={ex.id} value={ex.name}>
-                              {ex.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
+                    <div className="relative w-56">
+                      <select
+                        value={row.exercise}
+                        onChange={(e) => updateRow(i, 'exercise', e.target.value)}
+                        className={cn(inputCls, 'w-full appearance-none pr-8')}
+                        required
+                      >
+                        {Object.entries(byCategory).map(([cat, exs]) => (
+                          <optgroup key={cat} label={cat}>
+                            {exs.map((ex) => (
+                              <option key={ex.id} value={ex.name}>
+                                {ex.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    </div>
                   </td>
                   <td className="px-5 py-2.5">
                     <input

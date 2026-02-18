@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Three ascending bars: short, medium, tall — representing progress -->
+  <rect x="1"  y="19" width="8" height="12" rx="2" fill="#22d3ee" opacity="0.45"/>
+  <rect x="12" y="11" width="8" height="20" rx="2" fill="#22d3ee" opacity="0.72"/>
+  <rect x="23" y="1"  width="8" height="30" rx="2" fill="#22d3ee"/>
+</svg>
