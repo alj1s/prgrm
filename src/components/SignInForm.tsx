@@ -40,7 +40,7 @@ export function SignInForm() {
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-2 mb-8">
           <Dumbbell className="w-6 h-6 text-cyan-400" />
-          <span className="text-xl font-bold text-white">progrm</span>
+          <span className="text-xl font-bold text-white">prgrm</span>
         </div>
 
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8">

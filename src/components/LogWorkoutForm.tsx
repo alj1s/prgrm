@@ -2,12 +2,13 @@ import { ChevronDown, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { cn, inputCls } from '#/lib/utils'
 import { getStrengthLevel, type StrengthLevel } from '#/lib/strength-standards'
+import { oneRepMax } from '#/lib/workout'
 import { StrengthBadge } from './StrengthBadge'
 
-type SetRow = { exercise: string; weightKg: number; reps: number }
+type SetRow = { exercise: string; weightKg: number | undefined; reps: number | undefined }
 
 function computedStrengthLevel(row: SetRow, bodyweightKg: number): StrengthLevel {
-  return getStrengthLevel(row.exercise, bodyweightKg, row.weightKg, row.reps)
+  return getStrengthLevel(row.exercise, bodyweightKg, row.weightKg ?? 0, row.reps ?? 0)
 }
 
 function todayLabel() {
@@ -30,7 +31,7 @@ export function LogWorkoutForm({
   onSubmit: (data: LogWorkoutData) => Promise<void>
 }) {
   const [date, setDate] = useState(todayLabel())
-  const [bodyweightKg, setBodyweightKg] = useState(lastBodyweightKg)
+  const [bodyweightKg, setBodyweightKg] = useState<number | undefined>(lastBodyweightKg)
   const [rows, setRows] = useState<SetRow[]>([
     { exercise: exerciseList[0]?.name ?? '', weightKg: 0, reps: 5 },
   ])
@@ -40,7 +41,7 @@ export function LogWorkoutForm({
   const addRow = () =>
     setRows((r) => [
       ...r,
-      { exercise: r[r.length - 1]?.exercise ?? exerciseList[0]?.name ?? '', weightKg: 0, reps: 5 },
+      { exercise: r[r.length - 1]?.exercise ?? exerciseList[0]?.name ?? '', weightKg: undefined, reps: undefined },
     ])
 
   const removeRow = (i: number) => setRows((r) => r.filter((_, idx) => idx !== i))
@@ -55,8 +56,13 @@ export function LogWorkoutForm({
     try {
       await onSubmit({
         date,
-        bodyweightKg,
-        sets: rows.map((r) => ({ ...r, strengthLevel: computedStrengthLevel(r, bodyweightKg) })),
+        bodyweightKg: bodyweightKg ?? lastBodyweightKg,
+        sets: rows.map((r) => ({
+          exercise: r.exercise,
+          weightKg: r.weightKg ?? 0,
+          reps: r.reps ?? 0,
+          strengthLevel: computedStrengthLevel(r, bodyweightKg ?? lastBodyweightKg),
+        })),
       })
     } catch {
       setError('Failed to save workout. Please try again.')
@@ -94,8 +100,8 @@ export function LogWorkoutForm({
               min={40}
               max={180}
               step={1}
-              value={bodyweightKg}
-              onChange={(e) => setBodyweightKg(Number(e.target.value))}
+              value={bodyweightKg ?? ''}
+              onChange={(e) => setBodyweightKg(e.target.value === '' ? undefined : Number(e.target.value))}
               className={cn(inputCls, 'w-20')}
             />
             <span className="text-sm text-slate-400">kg</span>
@@ -104,19 +110,23 @@ export function LogWorkoutForm({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="text-left text-slate-500 border-b border-slate-700/50">
-              <th className="px-5 py-3 font-medium">Exercise</th>
-              <th className="px-5 py-3 font-medium">Weight (kg)</th>
-              <th className="px-5 py-3 font-medium">Reps</th>
-              <th className="px-5 py-3 font-medium">Level</th>
-              <th className="px-2 py-3" />
+              <th className="px-5 py-3 font-medium w-72">Exercise</th>
+              <th className="px-5 py-3 font-medium w-36">Weight (kg)</th>
+              <th className="px-5 py-3 font-medium w-24">Reps</th>
+              <th className="px-5 py-3 font-medium w-28 text-right">Est. 1RM</th>
+              <th className="px-5 py-3 font-medium w-36">Level</th>
+              <th className="px-2 py-3 w-10" />
             </tr>
           </thead>
           <tbody>
             {rows.map((row, i) => {
-              const level = computedStrengthLevel(row, bodyweightKg)
+              const level = computedStrengthLevel(row, bodyweightKg ?? lastBodyweightKg)
+              const weightKg = row.weightKg ?? 0
+              const reps = row.reps ?? 0
+              const orm = weightKg > 0 ? oneRepMax(weightKg, reps) : null
               return (
                 <tr key={i} className="border-b border-slate-700/30 last:border-0">
                   <td className="px-5 py-2.5">
@@ -145,8 +155,8 @@ export function LogWorkoutForm({
                       type="number"
                       min={0}
                       step={0.5}
-                      value={row.weightKg}
-                      onChange={(e) => updateRow(i, 'weightKg', Number(e.target.value))}
+                      value={row.weightKg ?? ''}
+                      onChange={(e) => updateRow(i, 'weightKg', e.target.value === '' ? undefined : Number(e.target.value))}
                       className={cn(inputCls, 'w-24')}
                     />
                   </td>
@@ -155,11 +165,14 @@ export function LogWorkoutForm({
                       type="number"
                       min={1}
                       max={100}
-                      value={row.reps}
-                      onChange={(e) => updateRow(i, 'reps', Number(e.target.value))}
+                      value={row.reps ?? ''}
+                      onChange={(e) => updateRow(i, 'reps', e.target.value === '' ? undefined : Number(e.target.value))}
                       className={cn(inputCls, 'w-20')}
                       required
                     />
+                  </td>
+                  <td className="px-5 py-2.5 text-cyan-400 text-right tabular-nums font-medium">
+                    {orm !== null ? `${orm} kg` : '—'}
                   </td>
                   <td className="px-5 py-2.5">
                     <StrengthBadge level={level} />

@@ -19,7 +19,7 @@ export default function Header() {
         </button>
         <Link to="/" className="ml-4 flex items-center gap-2.5">
           <img src="/logo.svg" alt="" aria-hidden="true" className="h-6 w-auto" />
-          <span className="text-2xl font-bold tracking-tight text-white">progrm</span>
+          <span className="text-2xl font-bold tracking-tight text-white">prgrm</span>
         </Link>
       </header>
 

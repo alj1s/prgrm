@@ -1,4 +1,4 @@
-# progrm
+# prgrm
 
 A workout tracking app built with TanStack Start, TanStack Query, Shadcn/ui, Drizzle ORM, and Better Auth.
 
@@ -25,7 +25,7 @@ A workout tracking app built with TanStack Start, TanStack Query, Shadcn/ui, Dri
 Copy `.env.local` and fill in your values:
 
 ```bash
-DATABASE_URL="postgresql://user:password@localhost:5432/progrm"
+DATABASE_URL="postgresql://user:password@localhost:5432/prgrm"
 BETTER_AUTH_SECRET="your-secret-here"
 BETTER_AUTH_URL="http://localhost:3000"
 ```
@@ -34,10 +34,10 @@ BETTER_AUTH_URL="http://localhost:3000"
 
 ```bash
 docker run -d \
-  --name progrm-postgres \
-  -e POSTGRES_USER=progrm \
-  -e POSTGRES_PASSWORD=progrm \
-  -e POSTGRES_DB=progrm \
+  --name prgrm-postgres \
+  -e POSTGRES_USER=prgrm \
+  -e POSTGRES_PASSWORD=prgrm \
+  -e POSTGRES_DB=prgrm \
   -p 5432:5432 \
   postgres:16-alpine
 ```
