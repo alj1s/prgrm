@@ -4,11 +4,14 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 const certDir = join(homedir(), '.vite-plugin-mkcert')
+const certPath = join(certDir, 'cert.pem')
+const keyPath = join(certDir, 'dev.pem')
+const hasCerts = existsSync(certPath) && existsSync(keyPath)
 
 const config = defineConfig({
   plugins: [
@@ -19,10 +22,9 @@ const config = defineConfig({
     viteReact(),
   ],
   server: {
-    https: {
-      key: readFileSync(join(certDir, 'dev.pem')),
-      cert: readFileSync(join(certDir, 'cert.pem')),
-    },
+    https: hasCerts
+      ? { key: readFileSync(keyPath), cert: readFileSync(certPath) }
+      : undefined,
   },
   optimizeDeps: {
     exclude: ['@tanstack/start-server-core'],
