@@ -1,7 +1,18 @@
-import { boolean, integer, pgTable, real, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  integer,
+  pgTable,
+  real,
+  serial,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core'
 
 export const workoutSessions = pgTable('workout_sessions', {
   id: serial().primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
   date: text().notNull(),
   bodyweightKg: integer('bodyweight_kg').notNull().default(79),
   createdAt: timestamp('created_at').defaultNow(),

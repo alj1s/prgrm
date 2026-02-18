@@ -1,23 +1,71 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 import { Dumbbell, Plus, X } from 'lucide-react'
 import { useState } from 'react'
+import { z } from 'zod'
 import { db } from '#/db/index'
 import { exercises, workoutSessions, workoutSets } from '#/db/schema'
+import { auth } from '#/lib/auth'
 import { authClient } from '#/lib/auth-client'
 import { cn } from '#/lib/utils'
-import { LogWorkoutForm, type LogWorkoutData } from '#/components/LogWorkoutForm'
+import {
+  LogWorkoutForm
+  
+} from '#/components/LogWorkoutForm'
+import type {LogWorkoutData} from '#/components/LogWorkoutForm';
 import { WorkoutCard } from '#/components/WorkoutCard'
 import { SignInForm } from '#/components/SignInForm'
 
+async function requireUser() {
+  const { getRequest } = await import('@tanstack/start-server-core')
+  const session = await auth.api.getSession({ headers: getRequest().headers })
+  if (!session?.user) throw new Error('Unauthorized')
+  return session.user
+}
+
+const logWorkoutSchema = z.object({
+  date: z.string().min(1).max(50),
+  bodyweightKg: z.number().int().min(20).max(300),
+  sets: z
+    .array(
+      z.object({
+        exercise: z.string().min(1).max(100),
+        weightKg: z.number().min(0).max(1000),
+        reps: z.number().int().min(1).max(200),
+        strengthLevel: z.enum([
+          'Beginner',
+          'Novice',
+          'Intermediate',
+          'Advanced',
+          'Elite',
+        ]),
+      }),
+    )
+    .min(1)
+    .max(50),
+})
+
+const deleteWorkoutSchema = z.object({ id: z.number().int().positive() })
+
 const getPageData = createServerFn({ method: 'GET' }).handler(async () => {
+  const user = await requireUser()
+
   const sessions = await db
     .select()
     .from(workoutSessions)
+    .where(eq(workoutSessions.userId, user.id))
     .orderBy(desc(workoutSessions.id))
+    .limit(100)
 
-  const sets = await db.select().from(workoutSets)
+  const sessionIds = sessions.map((s) => s.id)
+  const sets =
+    sessionIds.length > 0
+      ? await db
+          .select()
+          .from(workoutSets)
+          .where(inArray(workoutSets.sessionId, sessionIds))
+      : []
   const exerciseList = await db.select().from(exercises).orderBy(exercises.name)
 
   return {
@@ -31,28 +79,37 @@ const getPageData = createServerFn({ method: 'GET' }).handler(async () => {
 })
 
 const logWorkout = createServerFn({ method: 'POST' })
-  .inputValidator(
-    (data: {
-      date: string
-      bodyweightKg: number
-      sets: { exercise: string; weightKg: number; reps: number; strengthLevel: string }[]
-    }) => data,
-  )
+  .inputValidator((data: unknown) => logWorkoutSchema.parse(data))
   .handler(async ({ data }) => {
+    const user = await requireUser()
+
     const [session] = await db
       .insert(workoutSessions)
-      .values({ date: data.date, bodyweightKg: data.bodyweightKg })
+      .values({
+        userId: user.id,
+        date: data.date,
+        bodyweightKg: data.bodyweightKg,
+      })
       .returning({ id: workoutSessions.id })
 
-    await db.insert(workoutSets).values(
-      data.sets.map((s) => ({ sessionId: session.id, ...s })),
-    )
+    await db
+      .insert(workoutSets)
+      .values(data.sets.map((s) => ({ sessionId: session.id, ...s })))
   })
 
 const deleteWorkout = createServerFn({ method: 'POST' })
-  .inputValidator((data: { id: number }) => data)
+  .inputValidator((data: unknown) => deleteWorkoutSchema.parse(data))
   .handler(async ({ data }) => {
-    await db.delete(workoutSessions).where(eq(workoutSessions.id, data.id))
+    const user = await requireUser()
+
+    await db
+      .delete(workoutSessions)
+      .where(
+        and(
+          eq(workoutSessions.id, data.id),
+          eq(workoutSessions.userId, user.id),
+        ),
+      )
   })
 
 export const Route = createFileRoute('/')({
@@ -61,7 +118,11 @@ export const Route = createFileRoute('/')({
 })
 
 function App() {
-  const { workouts, exercises: exerciseList, lastBodyweightKg } = Route.useLoaderData()
+  const {
+    workouts,
+    exercises: exerciseList,
+    lastBodyweightKg,
+  } = Route.useLoaderData()
   const { data: session, isPending } = authClient.useSession()
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)

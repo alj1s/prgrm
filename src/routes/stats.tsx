@@ -1,17 +1,44 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { asc } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 import { db } from '#/db/index'
 import { workoutSessions, workoutSets } from '#/db/schema'
+import { auth } from '#/lib/auth'
 import { authClient } from '#/lib/auth-client'
-import { BODYWEIGHT_EXERCISES, type StrengthLevel } from '#/lib/strength-standards'
+import {
+  BODYWEIGHT_EXERCISES
+  
+} from '#/lib/strength-standards'
+import type {StrengthLevel} from '#/lib/strength-standards';
 import { oneRepMax } from '#/lib/workout'
-import { ProgressChart, type ChartDataPoint } from '#/components/ProgressChart'
+import { ProgressChart  } from '#/components/ProgressChart'
+import type {ChartDataPoint} from '#/components/ProgressChart';
 import { StrengthBadge } from '#/components/StrengthBadge'
 
+async function requireUser() {
+  const { getRequest } = await import('@tanstack/start-server-core')
+  const session = await auth.api.getSession({ headers: getRequest().headers })
+  if (!session?.user) throw new Error('Unauthorized')
+  return session.user
+}
+
 const getStatsData = createServerFn({ method: 'GET' }).handler(async () => {
-  const sessions = await db.select().from(workoutSessions).orderBy(asc(workoutSessions.id))
-  const sets = await db.select().from(workoutSets)
+  const user = await requireUser()
+
+  const sessions = await db
+    .select()
+    .from(workoutSessions)
+    .where(eq(workoutSessions.userId, user.id))
+    .orderBy(asc(workoutSessions.id))
+
+  const sessionIds = sessions.map((s) => s.id)
+  const sets =
+    sessionIds.length > 0
+      ? await db
+          .select()
+          .from(workoutSets)
+          .where(inArray(workoutSets.sessionId, sessionIds))
+      : []
 
   // Build per-exercise timeline (oldest → newest)
   const exerciseMap = new Map<string, ChartDataPoint[]>()
@@ -35,7 +62,11 @@ const getStatsData = createServerFn({ method: 'GET' }).handler(async () => {
       })
       const value = isBW ? best.reps : oneRepMax(best.weightKg, best.reps)
       const pts = exerciseMap.get(exercise) ?? []
-      pts.push({ date: session.date, value, level: best.strengthLevel as StrengthLevel })
+      pts.push({
+        date: session.date,
+        value,
+        level: best.strengthLevel as StrengthLevel,
+      })
       exerciseMap.set(exercise, pts)
     }
   }
@@ -47,7 +78,11 @@ const getStatsData = createServerFn({ method: 'GET' }).handler(async () => {
         points,
         isBodyweight: BODYWEIGHT_EXERCISES.has(exercise),
       }))
-      .sort((a, b) => b.points.length - a.points.length || a.exercise.localeCompare(b.exercise)),
+      .sort(
+        (a, b) =>
+          b.points.length - a.points.length ||
+          a.exercise.localeCompare(b.exercise),
+      ),
   }
 })
 
@@ -73,7 +108,9 @@ function StatsPage() {
   if (exercises.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <p className="text-slate-400">No workout data yet — start logging workouts!</p>
+        <p className="text-slate-400">
+          No workout data yet — start logging workouts!
+        </p>
       </div>
     )
   }
