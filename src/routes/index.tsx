@@ -7,6 +7,7 @@ import { db } from '#/db/index'
 import { exercises, workoutSessions, workoutSets } from '#/db/schema'
 import { authClient } from '#/lib/auth-client'
 import { cn } from '#/lib/utils'
+import { getStrengthLevel, type StrengthLevel } from '#/lib/strength-standards'
 
 const getPageData = createServerFn({ method: 'GET' }).handler(async () => {
   const sessions = await db
@@ -23,6 +24,7 @@ const getPageData = createServerFn({ method: 'GET' }).handler(async () => {
       sets: sets.filter((ws) => ws.sessionId === s.id),
     })),
     exercises: exerciseList,
+    lastBodyweightKg: sessions[0]?.bodyweightKg ?? 79,
   }
 })
 
@@ -30,13 +32,14 @@ const logWorkout = createServerFn({ method: 'POST' })
   .inputValidator(
     (data: {
       date: string
-      sets: { exercise: string; weightLbs: number; reps: number; strengthLevel: string }[]
+      bodyweightKg: number
+      sets: { exercise: string; weightKg: number; reps: number; strengthLevel: string }[]
     }) => data,
   )
   .handler(async ({ data }) => {
     const [session] = await db
       .insert(workoutSessions)
-      .values({ date: data.date })
+      .values({ date: data.date, bodyweightKg: data.bodyweightKg })
       .returning({ id: workoutSessions.id })
 
     await db.insert(workoutSets).values(
@@ -55,9 +58,6 @@ function oneRepMax(weight: number, reps: number) {
   return Math.round(weight * (1 + reps / 30))
 }
 
-type StrengthLevel = 'Beginner' | 'Novice' | 'Intermediate' | 'Advanced' | 'Elite'
-const STRENGTH_LEVELS: StrengthLevel[] = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Elite']
-
 const strengthColors: Record<StrengthLevel, string> = {
   Beginner: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
   Novice: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
@@ -73,18 +73,25 @@ function todayLabel() {
   return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-type SetRow = { exercise: string; weightLbs: number; reps: number; strengthLevel: StrengthLevel }
+type SetRow = { exercise: string; weightKg: number; reps: number }
+
+function computedStrengthLevel(row: SetRow, bodyweightKg: number): StrengthLevel {
+  return getStrengthLevel(row.exercise, bodyweightKg, row.weightKg, row.reps)
+}
 
 function LogWorkoutForm({
   exerciseList,
+  lastBodyweightKg,
   onSaved,
 }: {
   exerciseList: { id: number; name: string; category: string }[]
+  lastBodyweightKg: number
   onSaved: () => void
 }) {
   const [date, setDate] = useState(todayLabel())
+  const [bodyweightKg, setBodyweightKg] = useState(lastBodyweightKg)
   const [rows, setRows] = useState<SetRow[]>([
-    { exercise: exerciseList[0]?.name ?? '', weightLbs: 0, reps: 5, strengthLevel: 'Intermediate' },
+    { exercise: exerciseList[0]?.name ?? '', weightKg: 0, reps: 5 },
   ])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -92,7 +99,7 @@ function LogWorkoutForm({
   const addRow = () =>
     setRows((r) => [
       ...r,
-      { exercise: r[r.length - 1]?.exercise ?? exerciseList[0]?.name ?? '', weightLbs: 0, reps: 5, strengthLevel: 'Intermediate' },
+      { exercise: r[r.length - 1]?.exercise ?? exerciseList[0]?.name ?? '', weightKg: 0, reps: 5 },
     ])
 
   const removeRow = (i: number) => setRows((r) => r.filter((_, idx) => idx !== i))
@@ -105,7 +112,13 @@ function LogWorkoutForm({
     setError('')
     setLoading(true)
     try {
-      await logWorkout({ data: { date, sets: rows } })
+      await logWorkout({
+        data: {
+          date,
+          bodyweightKg,
+          sets: rows.map((r) => ({ ...r, strengthLevel: computedStrengthLevel(r, bodyweightKg) })),
+        },
+      })
       onSaved()
     } catch {
       setError('Failed to save workout. Please try again.')
@@ -124,15 +137,32 @@ function LogWorkoutForm({
       onSubmit={handleSubmit}
       className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden mb-6"
     >
-      <div className="px-5 py-3 border-b border-slate-700 bg-slate-800/80 flex items-center gap-3">
-        <label className="text-sm font-medium text-slate-300 shrink-0">Date</label>
-        <input
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          required
-          className={cn(inputCls, 'w-44')}
-          placeholder="Feb 17, 2026"
-        />
+      <div className="px-5 py-3 border-b border-slate-700 bg-slate-800/80 flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium text-slate-300 shrink-0">Date</label>
+          <input
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+            className={cn(inputCls, 'w-44')}
+            placeholder="Feb 17, 2026"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <label className="text-sm font-medium text-slate-300 shrink-0">Body weight</label>
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number"
+              min={40}
+              max={180}
+              step={1}
+              value={bodyweightKg}
+              onChange={(e) => setBodyweightKg(Number(e.target.value))}
+              className={cn(inputCls, 'w-20')}
+            />
+            <span className="text-sm text-slate-400">kg</span>
+          </div>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -140,80 +170,80 @@ function LogWorkoutForm({
           <thead>
             <tr className="text-left text-slate-500 border-b border-slate-700/50">
               <th className="px-5 py-3 font-medium">Exercise</th>
-              <th className="px-5 py-3 font-medium">Weight (lbs)</th>
+              <th className="px-5 py-3 font-medium">Weight (kg)</th>
               <th className="px-5 py-3 font-medium">Reps</th>
               <th className="px-5 py-3 font-medium">Level</th>
               <th className="px-2 py-3" />
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
-              <tr key={i} className="border-b border-slate-700/30 last:border-0">
-                <td className="px-5 py-2.5">
-                  <select
-                    value={row.exercise}
-                    onChange={(e) => updateRow(i, 'exercise', e.target.value)}
-                    className={cn(inputCls, 'w-56 pr-2')}
-                    required
-                  >
-                    {Object.entries(byCategory).map(([cat, exs]) => (
-                      <optgroup key={cat} label={cat}>
-                        {exs.map((ex) => (
-                          <option key={ex.id} value={ex.name}>
-                            {ex.name}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-5 py-2.5">
-                  <input
-                    type="number"
-                    min={0}
-                    step={2.5}
-                    value={row.weightLbs}
-                    onChange={(e) => updateRow(i, 'weightLbs', Number(e.target.value))}
-                    className={cn(inputCls, 'w-24')}
-                  />
-                </td>
-                <td className="px-5 py-2.5">
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={row.reps}
-                    onChange={(e) => updateRow(i, 'reps', Number(e.target.value))}
-                    className={cn(inputCls, 'w-20')}
-                    required
-                  />
-                </td>
-                <td className="px-5 py-2.5">
-                  <select
-                    value={row.strengthLevel}
-                    onChange={(e) => updateRow(i, 'strengthLevel', e.target.value as StrengthLevel)}
-                    className={cn(inputCls, 'w-36')}
-                  >
-                    {STRENGTH_LEVELS.map((l) => (
-                      <option key={l} value={l}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-2 py-2.5">
-                  {rows.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeRow(i)}
-                      className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+            {rows.map((row, i) => {
+              const level = computedStrengthLevel(row, bodyweightKg)
+              return (
+                <tr key={i} className="border-b border-slate-700/30 last:border-0">
+                  <td className="px-5 py-2.5">
+                    <select
+                      value={row.exercise}
+                      onChange={(e) => updateRow(i, 'exercise', e.target.value)}
+                      className={cn(inputCls, 'w-56 pr-2')}
+                      required
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
+                      {Object.entries(byCategory).map(([cat, exs]) => (
+                        <optgroup key={cat} label={cat}>
+                          {exs.map((ex) => (
+                            <option key={ex.id} value={ex.name}>
+                              {ex.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-5 py-2.5">
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={row.weightKg}
+                      onChange={(e) => updateRow(i, 'weightKg', Number(e.target.value))}
+                      className={cn(inputCls, 'w-24')}
+                    />
+                  </td>
+                  <td className="px-5 py-2.5">
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={row.reps}
+                      onChange={(e) => updateRow(i, 'reps', Number(e.target.value))}
+                      className={cn(inputCls, 'w-20')}
+                      required
+                    />
+                  </td>
+                  <td className="px-5 py-2.5">
+                    <span
+                      className={cn(
+                        'inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border',
+                        strengthColors[level],
+                      )}
+                    >
+                      {level}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2.5">
+                    {rows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeRow(i)}
+                        className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -244,7 +274,7 @@ function LogWorkoutForm({
 }
 
 function App() {
-  const { workouts, exercises: exerciseList } = Route.useLoaderData()
+  const { workouts, exercises: exerciseList, lastBodyweightKg } = Route.useLoaderData()
   const { data: session, isPending } = authClient.useSession()
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)
@@ -287,7 +317,11 @@ function App() {
         </div>
 
         {showForm && (
-          <LogWorkoutForm exerciseList={exerciseList} onSaved={handleSaved} />
+          <LogWorkoutForm
+            exerciseList={exerciseList}
+            lastBodyweightKg={lastBodyweightKg}
+            onSaved={handleSaved}
+          />
         )}
 
         <div className="flex flex-col gap-6">
@@ -297,7 +331,9 @@ function App() {
               className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden"
             >
               <div className="px-5 py-3 border-b border-slate-700 bg-slate-800/80">
-                <span className="text-sm font-medium text-slate-300">{session.date}</span>
+                <span className="text-sm font-medium text-slate-300">
+                  {session.date} · {session.bodyweightKg} kg
+                </span>
               </div>
 
               <table className="w-full text-sm">
@@ -312,7 +348,7 @@ function App() {
                 </thead>
                 <tbody>
                   {session.sets.map((set) => {
-                    const orm = oneRepMax(set.weightLbs, set.reps)
+                    const orm = oneRepMax(set.weightKg, set.reps)
                     const level = set.strengthLevel as StrengthLevel
                     return (
                       <tr
@@ -321,13 +357,13 @@ function App() {
                       >
                         <td className="px-5 py-3.5 text-white font-medium">{set.exercise}</td>
                         <td className="px-5 py-3.5 text-slate-300 text-right tabular-nums">
-                          {set.weightLbs > 0 ? `${set.weightLbs} lbs` : 'BW'}
+                          {set.weightKg > 0 ? `${set.weightKg} kg` : 'BW'}
                         </td>
                         <td className="px-5 py-3.5 text-slate-300 text-right tabular-nums">
                           {set.reps}
                         </td>
                         <td className="px-5 py-3.5 text-cyan-400 text-right tabular-nums font-medium">
-                          {set.weightLbs > 0 ? `${orm} lbs` : '—'}
+                          {set.weightKg > 0 ? `${orm} kg` : '—'}
                         </td>
                         <td className="px-5 py-3.5 text-right">
                           <span

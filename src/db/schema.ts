@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, integer, pgTable, real, serial, text, timestamp } from 'drizzle-orm/pg-core'
 
 export const todos = pgTable('todos', {
   id: serial().primaryKey(),
@@ -9,6 +9,7 @@ export const todos = pgTable('todos', {
 export const workoutSessions = pgTable('workout_sessions', {
   id: serial().primaryKey(),
   date: text().notNull(),
+  bodyweightKg: integer('bodyweight_kg').notNull().default(79),
   createdAt: timestamp('created_at').defaultNow(),
 })
 
@@ -18,7 +19,7 @@ export const workoutSets = pgTable('workout_sets', {
     .notNull()
     .references(() => workoutSessions.id, { onDelete: 'cascade' }),
   exercise: text().notNull(),
-  weightLbs: integer('weight_lbs').notNull().default(0),
+  weightKg: real('weight_kg').notNull().default(0),
   reps: integer().notNull(),
   strengthLevel: text('strength_level').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
