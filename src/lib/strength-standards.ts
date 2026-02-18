@@ -127,6 +127,24 @@ function oneRepMax(weight: number, reps: number): number {
 
 export type StrengthLevel = 'Beginner' | 'Novice' | 'Intermediate' | 'Advanced' | 'Elite'
 
+// Tailwind classes for badge UI
+export const strengthLevelBadge: Record<StrengthLevel, string> = {
+  Beginner:     'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  Novice:       'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  Intermediate: 'bg-green-500/20 text-green-300 border-green-500/30',
+  Advanced:     'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  Elite:        'bg-purple-500/20 text-purple-300 border-purple-500/30',
+}
+
+// Hex fill colors for SVG/canvas use
+export const strengthLevelColor: Record<StrengthLevel, string> = {
+  Beginner:     '#94a3b8',
+  Novice:       '#60a5fa',
+  Intermediate: '#4ade80',
+  Advanced:     '#fb923c',
+  Elite:        '#c084fc',
+}
+
 export function getStrengthLevel(
   exercise: string,
   userBodyweightKg: number,

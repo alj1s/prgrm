@@ -4,11 +4,14 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import mkcert from 'vite-plugin-mkcert'
+import { readFileSync } from 'fs'
+import { homedir } from 'os'
+import { join } from 'path'
+
+const certDir = join(homedir(), '.vite-plugin-mkcert')
 
 const config = defineConfig({
   plugins: [
-    mkcert(),
     devtools(),
     tsconfigPaths({ projects: ['./tsconfig.json'] }),
     tailwindcss(),
@@ -16,7 +19,10 @@ const config = defineConfig({
     viteReact(),
   ],
   server: {
-    https: true,
+    https: {
+      key: readFileSync(join(certDir, 'dev.pem')),
+      cert: readFileSync(join(certDir, 'cert.pem')),
+    },
   },
 })
 
