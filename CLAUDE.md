@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev          # Start dev server on port 3000
+npm run dev          # Start dev server on https://localhost:3000
 npm run build        # Production build
 npm run check        # Format (prettier --write) + lint (eslint --fix)
 npm run lint         # ESLint only
