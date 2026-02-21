@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { asc, eq, inArray } from 'drizzle-orm'
 import { db } from '#/db/index'
@@ -15,7 +15,7 @@ import { StrengthBadge } from '#/components/StrengthBadge'
 async function requireUser() {
   const { getRequest } = await import('@tanstack/start-server-core')
   const session = await auth.api.getSession({ headers: getRequest().headers })
-  if (!session?.user) throw new Error('Unauthorized')
+  if (!session?.user) throw redirect({ to: '/sign-in' })
   return session.user
 }
 

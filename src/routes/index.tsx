@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { Dumbbell, Plus, X } from 'lucide-react'
@@ -17,7 +17,7 @@ import { SignInForm } from '#/components/SignInForm'
 async function requireUser() {
   const { getRequest } = await import('@tanstack/start-server-core')
   const session = await auth.api.getSession({ headers: getRequest().headers })
-  if (!session?.user) throw new Error('Unauthorized')
+  if (!session?.user) throw redirect({ to: '/sign-in' })
   return session.user
 }
 

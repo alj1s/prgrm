@@ -1,8 +1,9 @@
 import { authClient } from '#/lib/auth-client'
-import { Link } from '@tanstack/react-router'
+import { Link, useRouter } from '@tanstack/react-router'
 
 export default function BetterAuthHeader() {
   const { data: session, isPending } = authClient.useSession()
+  const router = useRouter()
 
   if (isPending) {
     return <div className="h-8 w-8 bg-slate-700 animate-pulse rounded" />
@@ -17,7 +18,13 @@ export default function BetterAuthHeader() {
           </span>
         </div>
         <button
-          onClick={() => void authClient.signOut()}
+          onClick={() =>
+            void authClient.signOut({
+              fetchOptions: {
+                onSuccess: () => router.navigate({ to: '/sign-in' }),
+              },
+            })
+          }
           className="text-sm text-slate-400 hover:text-white transition-colors"
         >
           Sign out

@@ -22,11 +22,11 @@ export function SignInForm() {
       if (isSignUp) {
         const result = await authClient.signUp.email({ email, password, name })
         if (result.error) setError(result.error.message || 'Sign up failed')
-        else router.invalidate()
+        else await router.navigate({ to: '/' })
       } else {
         const result = await authClient.signIn.email({ email, password })
         if (result.error) setError(result.error.message || 'Sign in failed')
-        else router.invalidate()
+        else await router.navigate({ to: '/' })
       }
     } catch {
       setError('An unexpected error occurred')
