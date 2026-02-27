@@ -7,6 +7,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { version } from './package.json'
 
 const certDir = join(homedir(), '.vite-plugin-mkcert')
 const certPath = join(certDir, 'cert.pem')
@@ -14,6 +15,9 @@ const keyPath = join(certDir, 'dev.pem')
 const hasCerts = existsSync(certPath) && existsSync(keyPath)
 
 const config = defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+  },
   plugins: [
     devtools(),
     tsconfigPaths({ projects: ['./tsconfig.json'] }),

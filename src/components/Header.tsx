@@ -76,6 +76,7 @@ export default function Header() {
 
         <div className="p-4 border-t border-gray-700">
           <BetterAuthHeader />
+          <p className="text-xs text-gray-500 mt-3">v{__APP_VERSION__}</p>
         </div>
       </aside>
     </>
