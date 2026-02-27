@@ -15,6 +15,7 @@ export const workoutSessions = pgTable('workout_sessions', {
     .references(() => user.id, { onDelete: 'cascade' }),
   date: text().notNull(),
   bodyweightKg: integer('bodyweight_kg').notNull().default(79),
+  hevyWorkoutId: text('hevy_workout_id').unique(),
   createdAt: timestamp('created_at').defaultNow(),
 })
 
@@ -35,6 +36,14 @@ export const exercises = pgTable('exercises', {
   name: text().notNull().unique(),
   category: text().notNull(), // Barbell, Dumbbell, Bodyweight, Machine, Cable
   createdAt: timestamp('created_at').defaultNow(),
+})
+
+export const userSettings = pgTable('user_settings', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  bodyweightKg: integer('bodyweight_kg'),
+  hevyApiKey: text('hevy_api_key'),
 })
 
 // better-auth tables

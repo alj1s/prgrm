@@ -1,16 +1,19 @@
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { and, desc, eq, inArray } from 'drizzle-orm'
-import { Dumbbell, Plus, X } from 'lucide-react'
+import { Dumbbell, Settings } from 'lucide-react'
 import { useState } from 'react'
 import { z } from 'zod'
 import { db } from '#/db/index'
-import { exercises, workoutSessions, workoutSets } from '#/db/schema'
+import {
+  userSettings as userSettingsTable,
+  workoutSessions,
+  workoutSets,
+} from '#/db/schema'
 import { auth } from '#/lib/auth'
 import { authClient } from '#/lib/auth-client'
-import { cn } from '#/lib/utils'
-import { LogWorkoutForm } from '#/components/LogWorkoutForm'
-import type { LogWorkoutData } from '#/components/LogWorkoutForm'
+import { fetchAllNewHevyWorkouts, mapHevyExercise } from '#/lib/hevy'
+import { getStrengthLevel } from '#/lib/strength-standards'
 import { WorkoutCard } from '#/components/WorkoutCard'
 import { SignInForm } from '#/components/SignInForm'
 
@@ -21,32 +24,85 @@ async function requireUser() {
   return session.user
 }
 
-const logWorkoutSchema = z.object({
-  date: z.string().min(1).max(50),
-  bodyweightKg: z.number().int().min(20).max(300),
-  sets: z
-    .array(
-      z.object({
-        exercise: z.string().min(1).max(100),
-        weightKg: z.number().min(0).max(1000),
-        reps: z.number().int().min(1).max(200),
-        strengthLevel: z.enum([
-          'Beginner',
-          'Novice',
-          'Intermediate',
-          'Advanced',
-          'Elite',
-        ]),
-      }),
-    )
-    .min(1)
-    .max(50),
-})
-
 const deleteWorkoutSchema = z.object({ id: z.number().int().positive() })
+
+const saveSettingsSchema = z.object({
+  bodyweightKg: z.number().int().min(20).max(300),
+  hevyApiKey: z.string().min(1),
+})
 
 const getPageData = createServerFn({ method: 'GET' }).handler(async () => {
   const user = await requireUser()
+
+  const settingsRows = await db
+    .select()
+    .from(userSettingsTable)
+    .where(eq(userSettingsTable.userId, user.id))
+  const settings = settingsRows.at(0) ?? null
+
+  // Auto-sync Hevy workouts if configured
+  if (settings?.hevyApiKey && settings.bodyweightKg != null) {
+    try {
+      const existingRows = await db
+        .select({ hevyWorkoutId: workoutSessions.hevyWorkoutId })
+        .from(workoutSessions)
+        .where(eq(workoutSessions.userId, user.id))
+
+      const existingIds = new Set(
+        existingRows
+          .map((r) => r.hevyWorkoutId)
+          .filter((id): id is string => id != null),
+      )
+
+      const newWorkouts = await fetchAllNewHevyWorkouts(
+        settings.hevyApiKey,
+        existingIds,
+      )
+
+      for (const workout of newWorkouts) {
+        const date = workout.start_time.slice(0, 10)
+        const [inserted] = await db
+          .insert(workoutSessions)
+          .values({
+            userId: user.id,
+            date,
+            bodyweightKg: settings.bodyweightKg,
+            hevyWorkoutId: workout.id,
+          })
+          .returning({ id: workoutSessions.id })
+
+        const setsToInsert = []
+        for (const exercise of workout.exercises) {
+          for (const set of exercise.sets) {
+            if (set.type !== 'normal') continue
+            const weightKg = set.weight_kg ?? 0
+            const reps = set.reps ?? 0
+            if (reps === 0) continue
+            const mappedExercise = mapHevyExercise(exercise.title)
+            const strengthLevel = getStrengthLevel(
+              mappedExercise,
+              settings.bodyweightKg,
+              weightKg,
+              reps,
+            )
+            setsToInsert.push({
+              sessionId: inserted.id,
+              exercise: mappedExercise,
+              weightKg,
+              reps,
+              strengthLevel,
+            })
+          }
+        }
+
+        if (setsToInsert.length > 0) {
+          await db.insert(workoutSets).values(setsToInsert)
+        }
+      }
+    } catch (err) {
+      console.error('Hevy sync failed:', err)
+    }
+  }
 
   const sessions = await db
     .select()
@@ -63,42 +119,40 @@ const getPageData = createServerFn({ method: 'GET' }).handler(async () => {
           .from(workoutSets)
           .where(inArray(workoutSets.sessionId, sessionIds))
       : []
-  const exerciseList = await db.select().from(exercises).orderBy(exercises.name)
 
   return {
     workouts: sessions.map((s) => ({
       ...s,
       sets: sets.filter((ws) => ws.sessionId === s.id),
     })),
-    exercises: exerciseList,
-    lastBodyweightKg: sessions[0]?.bodyweightKg ?? 79,
+    settings,
   }
 })
 
-const logWorkout = createServerFn({ method: 'POST' })
-  .inputValidator((data: unknown) => logWorkoutSchema.parse(data))
+const saveSettings = createServerFn({ method: 'POST' })
+  .inputValidator((data: unknown) => saveSettingsSchema.parse(data))
   .handler(async ({ data }) => {
     const user = await requireUser()
-
-    const [session] = await db
-      .insert(workoutSessions)
+    await db
+      .insert(userSettingsTable)
       .values({
         userId: user.id,
-        date: data.date,
         bodyweightKg: data.bodyweightKg,
+        hevyApiKey: data.hevyApiKey,
       })
-      .returning({ id: workoutSessions.id })
-
-    await db
-      .insert(workoutSets)
-      .values(data.sets.map((s) => ({ sessionId: session.id, ...s })))
+      .onConflictDoUpdate({
+        target: userSettingsTable.userId,
+        set: {
+          bodyweightKg: data.bodyweightKg,
+          hevyApiKey: data.hevyApiKey,
+        },
+      })
   })
 
 const deleteWorkout = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => deleteWorkoutSchema.parse(data))
   .handler(async ({ data }) => {
     const user = await requireUser()
-
     await db
       .delete(workoutSessions)
       .where(
@@ -114,61 +168,93 @@ export const Route = createFileRoute('/')({
   loader: () => getPageData(),
 })
 
+function SettingsForm({ onSaved }: { onSaved: () => void }) {
+  const [bodyweightKg, setBodyweightKg] = useState('')
+  const [hevyApiKey, setHevyApiKey] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      await saveSettings({
+        data: {
+          bodyweightKg: parseInt(bodyweightKg, 10),
+          hevyApiKey,
+        },
+      })
+      onSaved()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 mb-8">
+      <div className="flex items-center gap-2 mb-4">
+        <Settings className="w-5 h-5 text-cyan-400" />
+        <h2 className="text-lg font-semibold text-white">Setup</h2>
+      </div>
+      <p className="text-slate-400 text-sm mb-5">
+        Enter your bodyweight and Hevy API key to start syncing workouts
+        automatically.
+      </p>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm text-slate-300">Bodyweight (kg)</label>
+          <input
+            type="number"
+            value={bodyweightKg}
+            onChange={(e) => setBodyweightKg(e.target.value)}
+            placeholder="79"
+            min={20}
+            max={300}
+            required
+            className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 w-32"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm text-slate-300">Hevy API Key</label>
+          <input
+            type="text"
+            value={hevyApiKey}
+            onChange={(e) => setHevyApiKey(e.target.value)}
+            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            required
+            className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 font-mono"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={saving}
+          className="self-start bg-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+        >
+          {saving ? 'Saving...' : 'Save & Sync'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
 function App() {
-  const {
-    workouts,
-    exercises: exerciseList,
-    lastBodyweightKg,
-  } = Route.useLoaderData()
+  const { workouts, settings } = Route.useLoaderData()
   const { data: session, isPending } = authClient.useSession()
   const router = useRouter()
-  const [showForm, setShowForm] = useState(false)
 
   if (isPending) return null
   if (!session?.user) return <SignInForm />
 
-  const handleSubmit = async (data: LogWorkoutData) => {
-    await logWorkout({ data })
-    setShowForm(false)
-    router.invalidate()
-  }
+  const needsSetup = !settings?.bodyweightKg || !settings.hevyApiKey
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 px-6 py-10">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <Dumbbell className="w-7 h-7 text-cyan-400" />
-            <h1 className="text-2xl font-bold text-white">Recent Workouts</h1>
-          </div>
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className={cn(
-              'flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-semibold transition-colors',
-              showForm
-                ? 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                : 'bg-cyan-500 hover:bg-cyan-600 text-white',
-            )}
-          >
-            {showForm ? (
-              <>
-                <X className="w-4 h-4" /> Cancel
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" /> Log workout
-              </>
-            )}
-          </button>
+        <div className="flex items-center gap-3 mb-8">
+          <Dumbbell className="w-7 h-7 text-cyan-400" />
+          <h1 className="text-2xl font-bold text-white">Recent Workouts</h1>
         </div>
 
-        {showForm && (
-          <LogWorkoutForm
-            exerciseList={exerciseList}
-            lastBodyweightKg={lastBodyweightKg}
-            onSubmit={handleSubmit}
-          />
-        )}
+        {needsSetup && <SettingsForm onSaved={() => router.invalidate()} />}
 
         <div className="flex flex-col gap-6">
           {workouts.map((workout) => (
