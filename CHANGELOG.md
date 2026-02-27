@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/alj1s/prgrm/compare/v1.0.1...v1.0.2) (2026-02-27)
+
+
+### Bug Fixes
+
+* exclude CHANGELOG.md from Prettier ([07eb1e4](https://github.com/alj1s/prgrm/commit/07eb1e4d8b873cd6d26553fd61a00d9a9fea2bbe))
+
 ## [1.0.1](https://github.com/alj1s/prgrm/compare/v1.0.0...v1.0.1) (2026-02-27)
 
 
