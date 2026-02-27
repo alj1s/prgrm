@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/alj1s/prgrm/compare/v1.0.0...v1.0.1) (2026-02-27)
+
+
+### Bug Fixes
+
+* formatting of CHANGELOG.md ([fda4982](https://github.com/alj1s/prgrm/commit/fda4982cac9e3abeaaa4df9c9b80efff9299fdd5))
+
 # 1.0.0 (2026-02-27)
 
 ### Bug Fixes
