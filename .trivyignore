@@ -1,0 +1,17 @@
+# Go stdlib CVEs in the esbuild binary bundled by @tanstack/react-start → vite.
+# esbuild is a build tool CLI — it never handles HTTP requests or processes
+# untrusted input in this context, so these net/http and crypto/tls CVEs
+# are not exploitable. Base image updates (Dependabot) will keep esbuild
+# up to date as newer versions ship with patched Go runtimes.
+CVE-2024-24790
+CVE-2025-68121
+CVE-2023-39325
+CVE-2023-45283
+CVE-2023-45288
+CVE-2024-34156
+CVE-2025-47907
+CVE-2025-58183
+CVE-2025-61726
+CVE-2025-61728
+CVE-2025-61729
+CVE-2025-61730
