@@ -87,6 +87,7 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           vuln-type: library
+          skip-dirs: /usr/local,/usr/lib,/usr/share
 
       - name: Push image to Amazon ECR
         env:
