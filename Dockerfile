@@ -1,4 +1,4 @@
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 COPY package*.json ./
@@ -7,12 +7,12 @@ COPY . .
 RUN npm run build
 
 # ---- production image ----
-FROM node:22-alpine
+FROM node:25-alpine
 
 WORKDIR /app
 
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
+RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
