@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/alj1s/prgrm/compare/v1.0.4...v1.0.5) (2026-02-28)
+
+
+### Bug Fixes
+
+* resolve Trivy scan failures in deploy workflow ([652c3fc](https://github.com/alj1s/prgrm/commit/652c3fca724be3ceb5b066f5c7f8a3498a84da8d))
+
 ## [1.0.4](https://github.com/alj1s/prgrm/compare/v1.0.3...v1.0.4) (2026-02-28)
 
 
