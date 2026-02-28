@@ -16,7 +16,7 @@ const hasCerts = existsSync(certPath) && existsSync(keyPath)
 
 const config = defineConfig({
   define: {
-    __APP_VERSION__: JSON.stringify(version),
+    __APP_VERSION__: JSON.stringify(process.env.APP_VERSION ?? version),
   },
   plugins: [
     devtools(),
