@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/alj1s/prgrm/compare/v1.0.3...v1.0.4) (2026-02-28)
+
+
+### Bug Fixes
+
+* skip system dirs in Trivy scan to focus on app code only ([c2b270d](https://github.com/alj1s/prgrm/commit/c2b270d9fb977b279e1f09dbc745695697a95c4f))
+
 ## [1.0.3](https://github.com/alj1s/prgrm/compare/v1.0.2...v1.0.3) (2026-02-28)
 
 
