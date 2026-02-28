@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/alj1s/prgrm/compare/v1.0.2...v1.0.3) (2026-02-28)
+
+
+### Bug Fixes
+
+* exclude devDependencies from production image and scope Trivy to libraries ([4ef4355](https://github.com/alj1s/prgrm/commit/4ef4355f300253ad5141faf43eb6381efb031450))
+
 ## [1.0.2](https://github.com/alj1s/prgrm/compare/v1.0.1...v1.0.2) (2026-02-27)
 
 
