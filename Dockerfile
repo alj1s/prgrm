@@ -1,4 +1,4 @@
-FROM node:25-alpine AS builder
+FROM node:26-alpine AS builder
 
 ARG APP_VERSION
 ENV APP_VERSION=$APP_VERSION
@@ -10,7 +10,7 @@ COPY . .
 RUN npm run build
 
 # ---- production image ----
-FROM node:25-alpine
+FROM node:26-alpine
 
 WORKDIR /app
 
